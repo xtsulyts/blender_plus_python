@@ -1,0 +1,224 @@
+================================================================================
+ PLAN DE ESTUDIOS: BLENDER + PYTHON SCRIPTING + MCP SERVER
+ Objetivo final: composición dinámica en Blender controlada por IA via MCP,
+                 exportada como glTF y visualizada en el browser con Three.js
+ Perfil: Full-stack dev con Python, TypeScript, Django, Docker, Linux
+ Doc oficial Blender: https://docs.blender.org/api/current/index.html
+ MCP Python SDK:      https://github.com/modelcontextprotocol/python-sdk
+================================================================================
+
+FASE 1 — BLENDER: INTERFAZ Y FLUJO DE TRABAJO (1 semana)
+---------------------------------------------------------
+Objetivo: entender la herramienta antes de scriptearla.
+
+1.1  Navegación 3D viewport: orbitar, pan, zoom, atajos clave
+1.2  Workspaces: Layout, Modeling, Scripting, Shading, Rendering
+1.3  Objetos: crear, mover, rotar, escalar (mesh, light, camera)
+1.4  Materiales y shader nodes: principled BSDF, colores, roughness
+1.5  Timeline y keyframes: insertar, editar, entender F-curves
+1.6  Render básico: Eevee vs Cycles, output settings
+1.7  Abrir la Python Console integrada y ejecutar bpy.ops.mesh.primitive_cube_add()
+
+Recursos del repo: ver assets/images/ como referencia visual de los tutoriales
+
+
+FASE 2 — PYTHON API DE BLENDER (bpy) — FUNDAMENTOS (2 semanas)
+----------------------------------------------------------------
+Objetivo: entender los módulos core y poder manipular escenas por código.
+
+2.1  Arquitectura de bpy
+     - bpy.data   → acceso a todos los datos del blend file
+     - bpy.ops    → operadores (equivalente a hacer clic en la UI)
+     - bpy.context → estado actual (objeto activo, escena, modo)
+     - bpy.types  → clases de todos los tipos de datos
+     - bpy.utils  → utilidades (registro de add-ons, etc.)
+
+2.2  Manipulación de escena
+     - Crear, nombrar y eliminar objetos
+     - Limpiar escena: purge_orphans() — ver pattern en repo (clean_scene)
+     - Colecciones y organización
+
+2.3  Transformaciones y matemáticas
+     - mathutils: Vector, Matrix, Euler, Quaternion
+     - Ubicar objetos en coordenadas precisas
+     - Rotaciones procedurales
+
+2.4  Materiales por código
+     - Crear material, asignar shader nodes via node_tree
+     - Cambiar colores y propiedades desde script
+
+2.5  Keyframes por código
+     - keyframe_insert(), driver expressions
+     - Animar propiedades arbitrarias de objetos
+
+Práctica: estudiar y ejecutar scripts del repo en orden:
+  → holder/script_done.py             (setup básico de escena)
+  → cube_loop/cube_loop_done.py       (objeto + animación)
+  → weave/weave_done.py               (transformaciones + timing)
+
+
+FASE 3 — SCRIPTING PROCEDURAL INTERMEDIO (2 semanas)
+-----------------------------------------------------
+Objetivo: generar formas y animaciones complejas de forma paramétrica.
+
+3.1  Generación de patrones
+     - Loops, listas, funciones matemáticas para distribuir objetos
+     - sin/cos para movimientos circulares y ondulatorios
+     - Estudiar floret/ (phyllotaxis) como modelo de patrón matemático
+
+3.2  Modificadores por código
+     - bpy.ops.object.modifier_add(), configurar propiedades
+     - Subdivisión, Wireframe, Array, Mirror
+
+3.3  Geometry Nodes via script
+     - Acceder y modificar node groups de Geometry Nodes
+     - Estudiar subdivided_triangulated_cube/
+
+3.4  Materiales avanzados y paletas de color
+     - Cargar paletas desde JSON (ver apply_color_palettes/)
+     - Batch processing: aplicar paletas a múltiples objetos
+
+3.5  Compositor y Video Sequence Editor
+     - Automatizar compositing via script
+     - Estudiar compositor_import_image_sequence/ y sequence_editor_*
+
+Práctica con scripts del repo:
+  → color_slices/color_slices_part1–8_done.py  (serie completa)
+  → hex_delay/hex_delay_done.py
+  → truchet_tiles/script_done.py
+
+
+FASE 4 — DESARROLLO DE ADD-ONS (1 semana)
+------------------------------------------
+Objetivo: empaquetar scripts como extensiones instalables de Blender.
+
+4.1  Estructura de un add-on
+     - bl_info, register(), unregister()
+     - Namespacing y buenas prácticas
+
+4.2  Operadores (bpy.types.Operator)
+     - execute(), invoke(), modal()
+     - Propiedades de operador: IntProperty, FloatProperty, StringProperty
+
+4.3  Paneles UI (bpy.types.Panel)
+     - Crear panel en N-panel o propiedades
+     - Estudiar simple_custom_panel/ y simple_custom_operator_with_props/
+
+4.4  Pie Menus
+     - Estudiar pie_menu_with_custom_op/ (tutorial reciente del repo)
+
+4.5  Comunicación externa desde add-on
+     - Usar sockets o HTTP dentro de un operador modal
+     - Base para integrar el MCP client dentro de Blender
+
+Práctica: crear un add-on propio que exponga 3 operaciones básicas
+          (crear objeto, cambiar color, render) — será la base del MCP
+
+
+FASE 5 — MCP SERVER EN PYTHON (1 semana)
+-----------------------------------------
+Objetivo: entender e implementar un servidor MCP local.
+Requisito: Python 3.10+, mcp SDK >= 1.2.0
+
+5.1  Protocolo MCP
+     - Qué es: estándar abierto para exponer contexto/herramientas a LLMs
+     - Arquitectura: host ↔ client ↔ server
+     - Transport: STDIO (local) vs HTTP/SSE (red)
+
+5.2  Python MCP SDK
+     - Instalar: pip install mcp
+     - Decoradores: @server.tool(), @server.resource(), @server.prompt()
+     - IMPORTANTE: en STDIO nunca escribir a stdout (rompe JSON-RPC)
+
+5.3  Definir Tools
+     - Cada tool = función Python con schema de inputs/outputs
+     - Ejemplo de tool: "create_cube" con params x, y, z, size
+
+5.4  Servidor STDIO local
+     - Levantar el server, conectarlo con Claude Desktop o cualquier MCP host
+     - Testear con mcp dev (inspector incluido en el SDK)
+
+5.5  Manejo de errores y logging
+     - Escribir logs a stderr o archivo, nunca stdout en STDIO mode
+
+Práctica: MCP server standalone con 2–3 tools dummy (no Blender aún)
+          Testearlo con el MCP Inspector del SDK
+
+
+FASE 6 — INTEGRACIÓN: BLENDER ↔ MCP SERVER (2 semanas)
+--------------------------------------------------------
+Objetivo: el MCP server ejecuta operaciones reales en Blender.
+
+6.1  Arquitectura de integración
+     Opción A (recomendada): Add-on Blender corre un socket server interno,
+                             el MCP server se conecta y envía comandos Python
+     Opción B: MCP server llama a Blender CLI (blender --python script.py)
+               para operaciones batch (más simple pero no interactivo)
+
+6.2  Implementar Opción A
+     - Add-on Blender: operador modal que abre socket TCP (localhost:port)
+     - Recibe strings de código Python o comandos JSON, ejecuta con exec()
+     - MCP server: tool que abre socket, envía comando, recibe respuesta
+
+6.3  Tools MCP para Blender
+     - create_object(type, name, location)
+     - set_material(object_name, color_hex)
+     - set_keyframe(object_name, frame, property, value)
+     - render_scene(output_path, frame)
+     - export_gltf(output_path)
+     - run_script(script_code)  ← tool genérico poderoso
+
+6.4  Seguridad
+     - Validar inputs antes de exec() — nunca exponer en red pública
+     - Limitar operaciones permitidas si se expone a un LLM
+
+6.5  Testing de la integración
+     - Conectar Claude Desktop al MCP server
+     - Pedir a Claude que cree una escena y renderice
+
+
+FASE 7 — PROYECTO FINAL (2 semanas)
+-------------------------------------
+Objetivo: composición dinámica generada/controlada por IA, visualizada en web.
+
+7.1  Diseño de la composición
+     - Escena procedural animada (inspirada en los loops del repo)
+     - Parametrizable: colores, formas, timing controlados via MCP tools
+
+7.2  Control por IA
+     - Usar Claude (via MCP) para generar la escena describiendo lo que quiere
+     - Claude llama tools → Blender crea la escena → Claude itera
+
+7.3  Export pipeline
+     - Exportar escena animada como glTF/GLB (formato estándar web)
+     - bpy.ops.export_scene.gltf() con animaciones incluidas
+
+7.4  Visor web con Three.js
+     - Setup mínimo: HTML + Three.js + GLTFLoader
+     - Cargar el .glb, reproducir animación en loop
+     - Controles de cámara con OrbitControls
+
+7.5  Cierre e integración total
+     - Script MCP que: genera escena → exporta glTF → abre servidor HTTP local
+     - Browser muestra la composición animada
+     - Demo funcional de todo el pipeline: IA → Blender → Web
+
+
+================================================================================
+ TIEMPO ESTIMADO TOTAL: ~11 semanas (ritmo flexible, 1–2 hs diarias)
+ STACK FINAL:
+   - Blender 4.0+ con bpy
+   - Python 3.10+ con mcp SDK
+   - Add-on Blender como bridge
+   - Claude Desktop (o cualquier MCP host) como cliente IA
+   - Three.js para visualización web
+================================================================================
+
+RECURSOS CLAVE
+--------------
+Blender Python API:    https://docs.blender.org/api/current/index.html
+Blender Quickstart:    https://docs.blender.org/api/current/info_quickstart.html
+MCP Python SDK:        https://github.com/modelcontextprotocol/python-sdk
+MCP Build Server doc:  https://modelcontextprotocol.io/docs/develop/build-server
+bpybb library:         ver carpeta set_up_world_sun_light/ en este repo
+Three.js GLTFLoader:   https://threejs.org/docs/#examples/en/loaders/GLTFLoader
